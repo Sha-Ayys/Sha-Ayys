@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0D0D14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KeuanganKu">
+<meta name="description" content="Aplikasi pencatatan keuangan pribadi">
+<title>KeuanganKu</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0D0D14;--surface:#13131C;--card:#1A1A26;--border:#252535;--accent:#7C6EFA;--accent2:#A78BFA;--green:#34D399;--red:#F87171;--text:#F1F1F8;--sub:#6B6B8A;--sub2:#9999B8;--radius:16px;--radius-sm:10px}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(13,13,20,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+  .topbar-book{display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:100px;padding:6px 14px 6px 10px;max-width:210px}
+  .topbar-book-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .topbar-date{font-size:11px;color:var(--sub);font-weight:500;flex-shrink:0}
+  .main{padding:68px 0 80px}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;background:rgba(19,19,28,.95);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;cursor:pointer;border:none;background:none;color:var(--sub);font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;transition:color .2s}
+  .nav-item .nav-icon{font-size:20px;transition:transform .2s}
+  .nav-item.active{color:var(--accent2)}
+  .nav-item.active .nav-icon{transform:translateY(-2px)}
+  .nav-item.add-btn .nav-icon{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 4px 20px rgba(124,110,250,.5)}
+  .nav-item.add-btn:active .nav-icon{transform:scale(.93)}
+  .page{display:none;padding:20px 16px}
+  .page.active{display:block}
+  .section-title{font-size:24px;font-weight:800;letter-spacing:-.8px;margin-bottom:4px}
+  .section-sub{font-size:13px;color:var(--sub);margin-bottom:20px}
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .sum-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+  .sum-card.full{grid-column:1/-1}
+  .sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .sum-card.saldo::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .sum-card.masuk::before{background:var(--green)}
+  .sum-card.keluar::before{background:var(--red)}
+  .sum-card-label{font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .sum-card-value{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;line-height:1}
+  .sum-card.saldo .sum-card-value{color:var(--accent2);font-size:22px}
+  .sum-card.masuk .sum-card-value{color:var(--green)}
+  .sum-card.keluar .sum-card-value{color:var(--red)}
+  .list-title{font-size:14px;font-weight:700;color:var(--sub2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+  .tx-list{display:flex;flex-direction:column;gap:8px}
+  .tx-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:14px;animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .tx-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .tx-dot.in{background:rgba(52,211,153,.12)}
+  .tx-dot.out{background:rgba(248,113,113,.12)}
+  .tx-info{flex:1;min-width:0}
+  .tx-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tx-meta{font-size:11px;color:var(--sub);margin-top:2px}
+  .tx-amount{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;white-space:nowrap}
+  .tx-amount.in{color:var(--green)}
+  .tx-amount.out{color:var(--red)}
+  .tx-delete{background:rgba(248,113,113,.1);border:none;border-radius:6px;color:var(--red);font-size:14px;padding:6px 8px;cursor:pointer;flex-shrink:0}
+  .tx-delete:active{background:rgba(248,113,113,.25)}
+  .form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .field{margin-bottom:18px}
+  .field:last-child{margin-bottom:0}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--sub2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .field input,.field select{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:15px;padding:13px 16px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B8A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+  .jenis-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .jenis-btn{padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface);color:var(--sub);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center}
+  .jenis-btn.active-in{border-color:var(--green);background:rgba(52,211,153,.1);color:var(--green)}
+  .jenis-btn.active-out{border-color:var(--red);background:rgba(248,113,113,.1);color:var(--red)}
+  .btn-simpan{width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(124,110,250,.4);transition:opacity .2s,transform .15s}
+  .btn-simpan:active{opacity:.85;transform:scale(.98)}
+  .filter-tabs{display:flex;gap:8px;margin-bottom:16px}
+  .filter-tab{padding:8px 16px;border-radius:100px;border:1.5px solid var(--border);background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .filter-tab.active{border-color:var(--accent);background:rgba(124,110,250,.12);color:var(--accent2)}
+  .report-section{margin-bottom:24px}
+  .report-section-title{font-size:13px;font-weight:700;color:var(--sub2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+  .report-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+  .report-row-label{font-size:14px;font-weight:600}
+  .report-row-vals{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .report-val{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .report-val.in{color:var(--green)}
+  .report-val.out{color:var(--red)}
+  .report-val.bal.pos{color:var(--accent2)}
+  .report-val.bal.neg{color:var(--red)}
+  .empty{text-align:center;padding:48px 20px;color:var(--sub)}
+  .empty-icon{font-size:48px;margin-bottom:12px}
+  .empty-text{font-size:14px;line-height:1.6}
+  .btn-export{width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--sub2);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:border-color .2s,color .2s;margin-bottom:12px}
+  .btn-export:active{border-color:var(--accent);color:var(--accent2)}
+
+  /* INSTALL BANNER */
+  .install-banner{display:none;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(124,110,250,.15),rgba(167,139,250,.1));border:1px solid rgba(124,110,250,.3);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
+  .install-banner.show{display:flex}
+  .install-banner-text{flex:1;font-size:13px;font-weight:600;line-height:1.4}
+  .install-banner-text span{display:block;font-size:11px;color:var(--sub);font-weight:400;margin-top:2px}
+  .btn-install{padding:10px 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .btn-install-close{background:none;border:none;color:var(--sub);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:540px;padding:20px 20px max(20px,env(safe-area-inset-bottom));max-height:82dvh;overflow-y:auto}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .modal-title{font-size:18px;font-weight:800}
+  .modal-close{background:var(--card);border:none;border-radius:50%;width:32px;height:32px;color:var(--sub);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .book-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+  .book-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:border-color .2s}
+  .book-item.active-book{border-color:var(--accent);background:rgba(124,110,250,.08)}
+  .book-item-icon{font-size:22px;flex-shrink:0}
+  .book-item-info{flex:1;min-width:0}
+  .book-item-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .book-item-count{font-size:12px;color:var(--sub);margin-top:2px}
+  .book-item-del{background:rgba(248,113,113,.1);border:none;border-radius:6px;color:var(--red);font-size:14px;padding:6px 8px;cursor:pointer;flex-shrink:0}
+  .new-book-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px}
+  .new-book-label{font-size:12px;font-weight:700;color:var(--sub2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .emoji-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .emoji-pick{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:border-color .2s;flex-shrink:0}
+  .emoji-pick.selected{border-color:var(--accent)}
+  .add-book-form{display:flex;gap:8px}
+  .add-book-form input{flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:14px;padding:11px 14px;outline:none;transition:border-color .2s;min-width:0}
+  .add-book-form input:focus{border-color:var(--accent)}
+  .add-book-form button{padding:11px 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:100px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--text);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  @media(min-width:600px){.main,.modal{max-width:540px;margin-left:auto;margin-right:auto}}
+  @media(min-width:1024px){.main{max-width:720px}.summary-grid{grid-template-columns:1fr 1fr 1fr}.sum-card.saldo{grid-column:1/-1}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-book" onclick="openBookModal()">
+    <span id="topbarIcon" style="font-size:16px">💰</span>
+    <span class="topbar-book-name" id="topbarBookName">Buku Utama</span>
+    <span style="font-size:10px;color:var(--sub);margin-left:2px">▼</span>
+  </div>
+  <span class="topbar-date" id="topbarDate"></span>
+</div>
+
+<div class="main">
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <p class="section-title">Dashboard</p>
+    <p class="section-sub" id="dashSubtitle"></p>
+
+    <!-- PWA Install Banner -->
+    <div class="install-banner" id="installBanner">
+      <span style="font-size:24px">📲</span>
+      <div class="install-banner-text">
+        Install KeuanganKu
+        <span>Akses lebih cepat seperti aplikasi asli</span>
+      </div>
+      <button class="btn-install" id="btnInstall" onclick="installPWA()">Install</button>
+      <button class="btn-install-close" onclick="dismissInstall()">✕</button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="sum-card saldo full"><div class="sum-card-label">Saldo</div><div class="sum-card-value" id="saldoVal">Rp 0</div></div>
+      <div class="sum-card masuk"><div class="sum-card-label">Pemasukan</div><div class="sum-card-value" id="masukVal">Rp 0</div></div>
+      <div class="sum-card keluar"><div class="sum-card-label">Pengeluaran</div><div class="sum-card-value" id="keluarVal">Rp 0</div></div>
+    </div>
+    <div class="list-title">Transaksi Terakhir</div>
+    <div class="tx-list" id="dashList"></div>
+  </div>
+
+  <!-- TAMBAH -->
+  <div class="page" id="page-tambah">
+    <p class="section-title">Tambah</p>
+    <p class="section-sub">Catat transaksi baru</p>
+    <div class="form-card">
+      <div class="field">
+        <label>Jenis Transaksi</label>
+        <div class="jenis-toggle">
+          <button class="jenis-btn active-in" id="btnMasuk" onclick="setJenis('Pemasukan')">+ Pemasukan</button>
+          <button class="jenis-btn" id="btnKeluar" onclick="setJenis('Pengeluaran')">− Pengeluaran</button>
+        </div>
+      </div>
+      <div class="field"><label>Tanggal</label><input type="date" id="inputTgl"></div>
+      <div class="field"><label>Keterangan</label><input type="text" id="inputKet" placeholder="Contoh: Gaji, Makan siang..." autocomplete="off"></div>
+      <div class="field">
+        <label>Kategori</label>
+        <select id="inputKat">
+          <option>Umum</option><option>Gaji</option><option>Bisnis</option><option>Investasi</option>
+          <option>Makanan</option><option>Transportasi</option><option>Belanja</option>
+          <option>Kesehatan</option><option>Pendidikan</option><option>Hiburan</option><option>Lainnya</option>
+        </select>
+      </div>
+      <div class="field"><label>Jumlah (Rp)</label><input type="number" id="inputJumlah" placeholder="0" inputmode="numeric" min="0"></div>
+    </div>
+    <button class="btn-simpan" onclick="simpan()">✔ Simpan Transaksi</button>
+  </div>
+
+  <!-- RIWAYAT -->
+  <div class="page" id="page-riwayat">
+    <p class="section-title">Riwayat</p>
+    <p class="section-sub">Semua transaksi tercatat</p>
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="setFilter('Semua',this)">Semua</button>
+      <button class="filter-tab" onclick="setFilter('Pemasukan',this)">Pemasukan</button>
+      <button class="filter-tab" onclick="setFilter('Pengeluaran',this)">Pengeluaran</button>
+    </div>
+    <div class="tx-list" id="riwayatList"></div>
+  </div>
+
+  <!-- LAPORAN -->
+  <div class="page" id="page-laporan">
+    <p class="section-title">Laporan</p>
+    <p class="section-sub">Ringkasan keuangan</p>
+    <button class="btn-export" onclick="exportCSV()">⬇ Export ke CSV</button>
+    <div class="report-section"><div class="report-section-title">Per Bulan</div><div id="reportBulan"></div></div>
+    <div class="report-section"><div class="report-section-title">Per Kategori</div><div id="reportKategori"></div></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+    <span class="nav-icon">📊</span><span>Dashboard</span>
+  </button>
+  <button class="nav-item" id="nav-riwayat" onclick="showPage('riwayat')">
+    <span class="nav-icon">📋</span><span>Riwayat</span>
+  </button>
+  <button class="nav-item add-btn" id="nav-tambah" onclick="showPage('tambah')">
+    <span class="nav-icon">＋</span><span>Tambah</span>
+  </button>
+  <button class="nav-item" id="nav-laporan" onclick="showPage('laporan')">
+    <span class="nav-icon">📈</span><span>Laporan</span>
+  </button>
+</nav>
+
+<!-- MODAL BUKU -->
+<div class="overlay" id="bookOverlay" onclick="overlayClick(event)">
+  <div class="modal" id="bookModal">
+    <div class="modal-header">
+      <span class="modal-title">📚 Buku Keuangan</span>
+      <button class="modal-close" onclick="closeBookModal()">✕</button>
+    </div>
+    <div class="book-list" id="bookList"></div>
+    <div class="new-book-section">
+      <div class="new-book-label">Buat Buku Baru</div>
+      <div class="emoji-row" id="emojiRow"></div>
+      <div class="add-book-form">
+        <input type="text" id="inputBookName" placeholder="Nama buku baru..." maxlength="30">
+        <button onclick="tambahBuku()">+ Buat</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PWA: Service Worker Registration ──────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+
+// ── PWA: Install Prompt ───────────────────────────────────────────────────
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner only if not dismissed before
+  if (!localStorage.getItem('pwa_dismissed')) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  deferredPrompt = null;
+  showToast('✅ KeuanganKu berhasil diinstall!');
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      showToast('🎉 Menginstall aplikasi...');
+    }
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('pwa_dismissed', '1');
+}
+
+// ── App Logic ─────────────────────────────────────────────────────────────
+const CATS={Gaji:'💼',Bisnis:'🏪',Investasi:'📈',Makanan:'🍜',Transportasi:'🚗',Belanja:'🛍',Kesehatan:'💊',Pendidikan:'📚',Hiburan:'🎮',Umum:'📌',Lainnya:'💡'};
+const EMOJIS=['💰','💳','🏦','🏠','🚀','🎯','💎','🌿','📦','🛒','✈️','🎓','💵','🧾','🏋️','🎪'];
+
+let books=JSON.parse(localStorage.getItem('kq_books')||'null');
+if(!books){books=[{id:'book_1',name:'Buku Utama',icon:'💰',data:[]}];saveBooks();}
+let currentBookId=localStorage.getItem('kq_current')||books[0].id;
+if(!books.find(b=>b.id===currentBookId))currentBookId=books[0].id;
+let currentJenis='Pemasukan',currentFilter='Semua',selectedEmoji=EMOJIS[0];
+
+function getBook(){return books.find(b=>b.id===currentBookId)||books[0];}
+function getData(){return getBook().data;}
+function saveBooks(){localStorage.setItem('kq_books',JSON.stringify(books));}
+function saveCurrent(){localStorage.setItem('kq_current',currentBookId);}
+function fmt(n){return 'Rp '+Math.abs(n).toLocaleString('id-ID');}
+function fmtDate(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][+m-1]} ${y}`;}
+function getMonthKey(s){if(!s)return'';const[y,m]=s.split('-');return`${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][+m-1]} ${y}`;}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function bookSaldo(b){const m=b.data.filter(x=>x.jenis==='Pemasukan').reduce((s,x)=>s+x.jumlah,0);const k=b.data.filter(x=>x.jenis==='Pengeluaran').reduce((s,x)=>s+x.jumlah,0);return m-k;}
+
+function init(){
+  const today=new Date();
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const ds=`${days[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  document.getElementById('topbarDate').textContent=ds;
+  document.getElementById('dashSubtitle').textContent=ds;
+  const y=today.getFullYear(),m=String(today.getMonth()+1).padStart(2,'0'),d=String(today.getDate()).padStart(2,'0');
+  document.getElementById('inputTgl').value=`${y}-${m}-${d}`;
+  document.getElementById('emojiRow').innerHTML=EMOJIS.map(e=>`<div class="emoji-pick${e===selectedEmoji?' selected':''}" onclick="pickEmoji('${e}')">${e}</div>`).join('');
+  updateTopbar();render();
+}
+
+function updateTopbar(){const b=getBook();document.getElementById('topbarIcon').textContent=b.icon;document.getElementById('topbarBookName').textContent=b.name;}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if(id!=='tambah')render();
+}
+
+function setJenis(j){
+  currentJenis=j;
+  document.getElementById('btnMasuk').className='jenis-btn'+(j==='Pemasukan'?' active-in':'');
+  document.getElementById('btnKeluar').className='jenis-btn'+(j==='Pengeluaran'?' active-out':'');
+}
+
+function simpan(){
+  const tgl=document.getElementById('inputTgl').value;
+  const ket=document.getElementById('inputKet').value.trim();
+  const kat=document.getElementById('inputKat').value;
+  const jumlah=parseFloat(document.getElementById('inputJumlah').value);
+  if(!tgl){showToast('⚠️ Pilih tanggal dulu');return;}
+  if(!ket){showToast('⚠️ Keterangan tidak boleh kosong');return;}
+  if(!jumlah||jumlah<=0){showToast('⚠️ Masukkan jumlah yang valid');return;}
+  getBook().data.push({tanggal:tgl,keterangan:ket,kategori:kat,jenis:currentJenis,jumlah});
+  saveBooks();
+  document.getElementById('inputKet').value='';
+  document.getElementById('inputJumlah').value='';
+  showToast('✅ Transaksi disimpan ke "'+getBook().name+'"');
+  showPage('dashboard');
+}
+
+function hapus(idx){
+  if(!confirm('Hapus transaksi ini?'))return;
+  getBook().data.splice(idx,1);saveBooks();render();showToast('🗑 Transaksi dihapus');
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');renderRiwayat();
+}
+
+function render(){renderSummary();renderDashList();renderRiwayat();renderLaporan();}
+
+function renderSummary(){
+  const d=getData();
+  const masuk=d.filter(x=>x.jenis==='Pemasukan').reduce((s,x)=>s+x.jumlah,0);
+  const keluar=d.filter(x=>x.jenis==='Pengeluaran').reduce((s,x)=>s+x.jumlah,0);
+  const saldo=masuk-keluar;
+  document.getElementById('masukVal').textContent=fmt(masuk);
+  document.getElementById('keluarVal').textContent=fmt(keluar);
+  document.getElementById('saldoVal').textContent=(saldo<0?'−':'')+fmt(saldo);
+}
+
+function txHTML(d,idx){
+  const isIn=d.jenis==='Pemasukan';
+  return`<div class="tx-item">
+    <div class="tx-dot ${isIn?'in':'out'}">${CATS[d.kategori]||'💡'}</div>
+    <div class="tx-info"><div class="tx-name">${escHtml(d.keterangan)}</div><div class="tx-meta">${fmtDate(d.tanggal)} · ${d.kategori}</div></div>
+    <div class="tx-amount ${isIn?'in':'out'}">${isIn?'+':'−'} ${fmt(d.jumlah)}</div>
+    <button class="tx-delete" onclick="hapus(${idx})">🗑</button>
+  </div>`;
+}
+
+function renderDashList(){
+  const el=document.getElementById('dashList');
+  const recent=getData().map((x,i)=>({...x,idx:i})).reverse().slice(0,20);
+  el.innerHTML=!recent.length?`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Belum ada transaksi.<br>Tambah transaksi pertama!</div></div>`:recent.map(x=>txHTML(x,x.idx)).join('');
+}
+
+function renderRiwayat(){
+  const el=document.getElementById('riwayatList');
+  let f=getData().map((x,i)=>({...x,idx:i}));
+  if(currentFilter!=='Semua')f=f.filter(x=>x.jenis===currentFilter);
+  f=f.reverse();
+  el.innerHTML=!f.length?`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Tidak ada transaksi.</div></div>`:f.map(x=>txHTML(x,x.idx)).join('');
+}
+
+function renderLaporan(){
+  const d=getData();
+  const bulan={};
+  d.forEach(x=>{const k=getMonthKey(x.tanggal);if(!bulan[k])bulan[k]={m:0,k:0};if(x.jenis==='Pemasukan')bulan[k].m+=x.jumlah;else bulan[k].k+=x.jumlah;});
+  document.getElementById('reportBulan').innerHTML=!Object.keys(bulan).length
+    ?`<div class="empty" style="padding:20px"><div class="empty-text">Belum ada data</div></div>`
+    :Object.keys(bulan).map(k=>{const s=bulan[k].m-bulan[k].k;return`<div class="report-row"><div class="report-row-label">${k}</div><div class="report-row-vals"><span class="report-val in">+${fmt(bulan[k].m)}</span><span class="report-val out">−${fmt(bulan[k].k)}</span><span class="report-val bal ${s>=0?'pos':'neg'}">${s>=0?'':'−'}${fmt(s)}</span></div></div>`;}).join('');
+  const kat={};
+  d.forEach(x=>{if(!kat[x.kategori])kat[x.kategori]={m:0,k:0};if(x.jenis==='Pemasukan')kat[x.kategori].m+=x.jumlah;else kat[x.kategori].k+=x.jumlah;});
+  document.getElementById('reportKategori').innerHTML=!Object.keys(kat).length
+    ?`<div class="empty" style="padding:20px"><div class="empty-text">Belum ada data</div></div>`
+    :Object.keys(kat).map(k=>`<div class="report-row"><div class="report-row-label">${CATS[k]||'💡'} ${k}</div><div class="report-row-vals">${kat[k].m?`<span class="report-val in">+${fmt(kat[k].m)}</span>`:''}${kat[k].k?`<span class="report-val out">−${fmt(kat[k].k)}</span>`:''}</div></div>`).join('');
+}
+
+// MODAL BUKU
+function openBookModal(){renderBookList();document.getElementById('bookOverlay').classList.add('show');}
+function closeBookModal(){document.getElementById('bookOverlay').classList.remove('show');}
+function overlayClick(e){if(e.target===document.getElementById('bookOverlay'))closeBookModal();}
+
+function renderBookList(){
+  document.getElementById('bookList').innerHTML=books.map(b=>{
+    const s=bookSaldo(b);
+    return`<div class="book-item${b.id===currentBookId?' active-book':''}" onclick="switchBook('${b.id}')">
+      <div class="book-item-icon">${b.icon}</div>
+      <div class="book-item-info">
+        <div class="book-item-name">${escHtml(b.name)}</div>
+        <div class="book-item-count">${b.data.length} transaksi &nbsp;·&nbsp; ${s<0?'−':''}${fmt(s)}</div>
+      </div>
+      ${books.length>1?`<button class="book-item-del" onclick="event.stopPropagation();hapusBuku('${b.id}')">🗑</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function switchBook(id){
+  currentBookId=id;saveCurrent();updateTopbar();render();closeBookModal();
+  showToast('📖 Berpindah ke "'+getBook().name+'"');
+}
+
+function pickEmoji(e){
+  selectedEmoji=e;
+  document.querySelectorAll('.emoji-pick').forEach(el=>el.classList.toggle('selected',el.textContent===e));
+}
+
+function tambahBuku(){
+  const name=document.getElementById('inputBookName').value.trim();
+  if(!name){showToast('⚠️ Nama buku tidak boleh kosong');return;}
+  if(books.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('⚠️ Nama sudah digunakan');return;}
+  const id='book_'+Date.now();
+  books.push({id,name,icon:selectedEmoji,data:[]});
+  saveBooks();
+  document.getElementById('inputBookName').value='';
+  switchBook(id);
+  renderBookList();
+  showToast('✅ Buku "'+name+'" dibuat');
+}
+
+function hapusBuku(id){
+  const b=books.find(x=>x.id===id);
+  if(!confirm('Hapus buku "'+b.name+'"?\nSemua data di dalamnya akan hilang.'))return;
+  books=books.filter(x=>x.id!==id);
+  if(currentBookId===id)currentBookId=books[0].id;
+  saveBooks();saveCurrent();updateTopbar();render();renderBookList();
+  showToast('🗑 Buku dihapus');
+}
+
+function exportCSV(){
+  const d=getData();
+  if(!d.length){showToast('⚠️ Tidak ada data');return;}
+  const rows=[['Tanggal','Keterangan','Kategori','Jenis','Jumlah']];
+  d.forEach(x=>rows.push([x.tanggal,x.keterangan,x.kategori,x.jenis,x.jumlah]));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download='keuangan_'+getBook().name.replace(/\s+/g,'_')+'.csv';
+  a.click();showToast('✅ File CSV diunduh');
+}
+
+let toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+init();
+</script>
+</body>
+</html>
